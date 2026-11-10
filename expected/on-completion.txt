@@ -1,0 +1,15 @@
+test_debug_commit_is_reverted (test_release_day.ReleaseDayTest.test_debug_commit_is_reverted) ... ok
+test_feature_branch_commit_is_focused (test_release_day.ReleaseDayTest.test_feature_branch_commit_is_focused) ... ok
+test_feature_is_merged_into_main (test_release_day.ReleaseDayTest.test_feature_is_merged_into_main) ... ok
+test_main_is_pushed_to_origin (test_release_day.ReleaseDayTest.test_main_is_pushed_to_origin) ... ok
+test_release_notes_are_finished (test_release_day.ReleaseDayTest.test_release_notes_are_finished) ... ok
+test_release_notes_conflict_is_resolved (test_release_day.ReleaseDayTest.test_release_notes_conflict_is_resolved) ... ok
+test_scratch_mistake_is_fully_removed (test_release_day.ReleaseDayTest.test_scratch_mistake_is_fully_removed) ... ok
+test_stash_is_empty_after_restore (test_release_day.ReleaseDayTest.test_stash_is_empty_after_restore) ... ok
+test_teammate_update_is_merged (test_release_day.ReleaseDayTest.test_teammate_update_is_merged) ... ok
+test_worktree_is_clean_and_on_main (test_release_day.ReleaseDayTest.test_worktree_is_clean_and_on_main) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in <seconds>s
+
+OK
