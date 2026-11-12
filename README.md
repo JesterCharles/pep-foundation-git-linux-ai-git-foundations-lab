@@ -238,8 +238,13 @@ reads exactly like this, with all three marker lines deleted:
 - The README now documents the support rotation.
 ```
 
+<details>
+<summary>Hint</summary>
+
 VS Code may show buttons such as **Accept Both Changes** above the markers. You may
 use them; then check the result matches the text above with no marker left.
+
+</details>
 
 Save, then mark the conflict resolved and finish the merge:
 
