@@ -310,9 +310,4 @@ step 11.
 | `WIP scratch` is still the tip of `feature/release-notes` | Run `git reset --hard HEAD~1` on that branch (step 7). If it already reached `main` or the remote, never reset `main`: rerun setup instead. |
 | The push is rejected | Your `main` is behind: repeat step 8. If that pull conflicts in `RELEASE_NOTES.md`, resolve it on `main` as in step 9, then push again. |
 | Your lab state is broken | From the project folder, run `python tests/setup_lab.py`, then repeat the steps in order. |
-
-## Optional: work on your own computer
-
-You only need this if you were not given the project. Clone
-`https://github.com/JesterCharles/pep-foundation-git-linux-ai-git-foundations-lab`,
-open the cloned folder in VS Code or another editor, and start at **Quick start**.
+| Project files are missing, or setup cannot find them | Ask your trainer to repair the supplied project. Everything the lab needs is in this folder; do not download it from anywhere else. |
