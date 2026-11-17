@@ -1,3 +1,0 @@
-# Local files that never belong in a commit.
-.env
-__pycache__/

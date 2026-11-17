@@ -5,21 +5,12 @@ __pycache__/
 .venv/
 .env
 reports/
-.pytest_cache/
 
 # Node
 node_modules/
 
-# Created by setup: the local "team remote" for the lab repository.
-/src/origin.git/
-
-# Local secrets and environment files: never commit them
-.env.*
-*.env
-!.env.example
-!*.env.example
-
-# Editor and OS files (.vscode/ stays tracked: it holds the Run Tests task)
-.idea/
-.DS_Store
-Thumbs.db
+# Java
+target/
+build/
+.gradle/
+*.class

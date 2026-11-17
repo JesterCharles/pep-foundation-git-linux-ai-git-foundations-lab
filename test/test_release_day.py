@@ -1,275 +1,120 @@
-"""Checks for the "Release day" lab. Run from the lab folder:
+"""Trainer-authored tests — restored over the learner checkout at grade time.
 
-    python -m pytest -q
-
-Each failure message names the next action.
+One check per step. Each builds the release-day scenario in a temporary folder,
+does the earlier steps for you correctly, runs your script for its own step
+(src/stepN_*.sh) inside the clone, and inspects the result. Run one step with
+`python -m pytest -q -k step6`.
 """
 
-import unittest
-
-from test.lab_support import FEATURE, MAIN, ORIGIN, REPO, git, out
-
-SETUP_HINT = "Run `python test/setup_lab.py` from the lab folder first."
-DEBUG_LINE = "DEBUG: remove before release"
-YOUR_BULLET = "- The deployment name now comes from DEPLOY_ENV, with a development fallback."
-TEAMMATE_BULLET = "- The README now documents the support rotation."
-MARKERS = ("<<<<<<<", "=======", ">>>>>>>")
-
-
-def subjects(ref):
-    return out("log", "--format=%s", ref).splitlines()
-
-
-def file_at(ref, path):
-    return out("show", f"{ref}:{path}")
+from test.support import (
+    DEBUG_LINE,
+    DEBUG_SUBJECT,
+    FEATURE,
+    MAIN,
+    MARKERS,
+    NOTES_SUBJECT,
+    TEAMMATE_BULLET,
+    TEAMMATE_SUBJECT,
+    YOUR_BULLET,
+    scenario_after_step,
+)
 
 
-def commit_with_subject(ref, subject):
-    """The newest non-merge commit reachable from ref with exactly this subject, or None."""
-    for line in out("log", "--no-merges", "--format=%H%x09%s", ref).splitlines():
-        sha, _, text = line.partition("\t")
-        if text == subject:
-            return sha
-    return None
+def test_step4_stash(tmp_path):
+    lab = scenario_after_step(tmp_path, 4)
+    assert len(lab.stash_entries()) == 1, (
+        "Step 4: the stash should hold exactly one entry: your half-written release notes. "
+        "Put `git stash` in src/step4_stash.sh."
+    )
+    assert lab.status() == "", (
+        "Step 4: the working copy is not clean after your script. `git stash` saves the "
+        "uncommitted RELEASE_NOTES.md change and leaves nothing modified."
+    )
 
 
-def contains(ref, commit):
-    return git("merge-base", "--is-ancestor", commit, ref, check=False).returncode == 0
+def test_step5_revert(tmp_path):
+    lab = scenario_after_step(tmp_path, 5)
+    assert any(subject.startswith("Revert") for subject in lab.subjects(MAIN)), (
+        "Step 5: main has no revert commit. The debug commit was pushed, so undo it with a new "
+        "commit: put `git revert --no-edit HEAD` in src/step5_revert.sh."
+    )
+    assert DEBUG_LINE not in lab.file_at(MAIN, "status_message.py"), (
+        f"Step 5: status_message.py on main still contains the debug print. Revert the "
+        f"'{DEBUG_SUBJECT}' commit."
+    )
 
 
-def note_lines(text):
-    return [line.strip() for line in text.splitlines() if line.strip()]
+def test_step6_release_notes(tmp_path):
+    lab = scenario_after_step(tmp_path, 6)
+    assert lab.branch_exists(FEATURE), (
+        f"Step 6: the branch {FEATURE} does not exist. Start src/step6_release_notes.sh with "
+        f"`git switch -c {FEATURE}`."
+    )
+    assert lab.commit_with_subject(FEATURE, NOTES_SUBJECT), (
+        f"Step 6: {FEATURE} has no commit with the subject '{NOTES_SUBJECT}'. Commit with "
+        f'`git commit -m "{NOTES_SUBJECT}"`.'
+    )
+    notes = lab.file_at(FEATURE, "RELEASE_NOTES.md")
+    assert "TODO" not in notes, (
+        "Step 6: RELEASE_NOTES.md on the feature branch still contains the TODO line. After "
+        "`git stash pop`, write the finished file (the lab instructions show it), then add and commit it."
+    )
+    assert YOUR_BULLET in notes, (
+        f"Step 6: RELEASE_NOTES.md on the feature branch is missing your v1.1 bullet, word for word: {YOUR_BULLET!r}"
+    )
 
 
-class ReleaseDayTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        if not (REPO / ".git").exists() or not ORIGIN.exists():
-            raise unittest.SkipTest(f"The lab repository is missing. {SETUP_HINT}")
-
-    def branch_exists(self, name):
-        return git("rev-parse", "--verify", "--quiet", f"refs/heads/{name}", check=False).returncode == 0
-
-    def require_feature_branch(self):
-        self.assertTrue(
-            self.branch_exists(FEATURE),
-            f"The branch {FEATURE} does not exist yet. Create it with `git switch -c {FEATURE}`.",
-        )
-
-    def test_debug_commit_is_reverted(self):
-        main_subjects = subjects(MAIN)
-        self.assertIn(
-            "Add debug print for support",
-            main_subjects,
-            "The debug commit is gone from main's history. It was pushed, so it is shared: "
-            "undo it with `git revert --no-edit <commit>`, never with reset. Rerun setup and try again.",
-        )
-        self.assertTrue(
-            any(subject.startswith("Revert") for subject in main_subjects),
-            "main has no revert commit yet. Undo the shared debug commit with "
-            "`git revert --no-edit HEAD` while on main.",
-        )
-        self.assertNotIn(
-            DEBUG_LINE,
-            file_at(MAIN, "status_message.py"),
-            "status_message.py on main still contains the debug print. "
-            "Run `git revert --no-edit <commit of the debug print>`.",
-        )
-
-    def test_teammate_update_is_merged(self):
-        self.assertIn(
-            "Document the support rotation",
-            subjects(MAIN),
-            "The teammate's commit is not on your main yet. "
-            "Run `git fetch origin`, compare with `git log --oneline main..origin/main`, "
-            "then `git pull --no-edit origin main`.",
-        )
-        self.assertIn(
-            "## Support",
-            file_at(MAIN, "README.md"),
-            "README.md on main is missing the Support section the teammate pushed. "
-            "Pull origin/main into main.",
-        )
-
-    def test_release_notes_are_finished(self):
-        self.require_feature_branch()
-        notes = file_at(FEATURE, "RELEASE_NOTES.md")
-        self.assertNotIn(
-            "TODO",
-            notes,
-            "RELEASE_NOTES.md still contains the TODO line. Pop your stash on the feature branch, "
-            "replace the TODO line with your v1.1 bullet from the lab instructions, then commit.",
-        )
-        self.assertIn(
-            "DEPLOY_ENV",
-            notes,
-            "RELEASE_NOTES.md does not mention the DEPLOY_ENV change. Add your v1.1 bullet "
-            "from step 6 of the lab instructions (Finish the release notes on a branch).",
-        )
-
-    def test_feature_branch_commit_is_focused(self):
-        self.require_feature_branch()
-        own = [
-            line.split("\t", 1)[0]
-            for line in out("log", "--no-merges", "--format=%H%x09%s", FEATURE).splitlines()
-            if line.split("\t", 1)[1] == "Finish v1.1 release notes"
-        ]
-        self.assertTrue(
-            own,
-            f"{FEATURE} has no commit with the subject 'Finish v1.1 release notes'. "
-            "If your commit is only worded differently and you have not merged yet, fix the "
-            'message with `git commit --amend -m "Finish v1.1 release notes"` while it is the '
-            "newest commit on the feature branch; otherwise rerun setup and repeat the steps.",
-        )
-        changed = out("show", "--name-only", "--format=", own[0]).split()
-        self.assertEqual(
-            ["RELEASE_NOTES.md"],
-            changed,
-            f"The release-notes commit changed {changed}. Stage only RELEASE_NOTES.md by name, "
-            "never `git add .`. Rerun setup if you need a clean start.",
-        )
-
-    def test_scratch_mistake_is_fully_removed(self):
-        self.require_feature_branch()
-        holding = out("rev-list", "--all", "--", "scratch.tmp")
-        if holding:
-            if out("log", "-1", "--format=%s", FEATURE) == "WIP scratch":
-                hint = (
-                    "Nobody else has it yet, so remove it with `git reset --hard HEAD~1` "
-                    f"while on {FEATURE} (step 7)."
-                )
-            elif git("merge-base", "--is-ancestor", holding.split()[0], MAIN, check=False).returncode == 0:
-                hint = (
-                    "It has already reached main (and may be pushed), so never reset main now. "
-                    "Rerun `python test/setup_lab.py` and repeat the steps, removing the scratch "
-                    "commit in step 7, before you go back to main in step 8."
-                )
-            else:
-                hint = (
-                    "Remove it with `git reset --hard HEAD~1` on the branch whose newest commit "
-                    "it is, as long as that branch was never merged or pushed."
-                )
-            self.fail(f"A commit containing scratch.tmp is still reachable. {hint}")
-        self.assertFalse(
-            (REPO / "scratch.tmp").exists(),
-            "scratch.tmp is still in the working copy. `git reset --hard HEAD~1` removes the "
-            "commit and the file it added; if you only created the file, delete it.",
-        )
-
-    def test_release_notes_conflict_is_resolved(self):
-        self.require_feature_branch()
-        repeat = (
-            "From the lab folder, `cd src/release-day` (cmd: `cd src\\release-day`), "
-            "then fix it in a new commit on feature/release-notes "
-            "(`git switch feature/release-notes`, edit, `git add RELEASE_NOTES.md`, "
-            '`git commit -m "Resolve the release-notes conflict"`), then repeat step 10 '
-            "(`git switch main`, `git merge feature/release-notes`, `git push origin main`). "
-            "If you resolved the merge directly on main instead, fix and commit on main, "
-            "then push. Finally `cd ../..` and rerun the checks (step 11)."
-        )
-        notes = file_at(MAIN, "RELEASE_NOTES.md")
-        left = [line for line in notes.splitlines() if line.startswith(MARKERS)]
-        self.assertEqual(
-            [],
-            left,
-            "RELEASE_NOTES.md on main still contains conflict markers. Delete every "
-            "<<<<<<<, ======= and >>>>>>> line and keep both v1.1 bullets. " + repeat,
-        )
-        mine = commit_with_subject(MAIN, "Finish v1.1 release notes")
-        theirs = commit_with_subject(MAIN, "Document the support rotation")
-        self.assertTrue(
-            mine and theirs,
-            "main does not yet hold both your 'Finish v1.1 release notes' commit and the "
-            "teammate's 'Document the support rotation' commit. Finish steps 6-10 of the lab instructions "
-            "first; the other failing checks name the missing step.",
-        )
-        joined = None
-        for merge in out("rev-list", "--merges", MAIN).split():
-            parents = out("rev-list", "--parents", "-n", "1", merge).split()[1:]
-            if len(parents) != 2:
-                continue
-            has = [(contains(parent, mine), contains(parent, theirs)) for parent in parents]
-            if (True, False) in has and (False, True) in has:
-                joined = merge
-                break
-        self.assertIsNotNone(
-            joined,
-            "No merge on main joins your release-notes commit with the teammate's. From the "
-            f"lab folder, `cd src/release-day`, then run `git switch {FEATURE}` and "
-            f"`git merge {MAIN}`, resolve the conflict in RELEASE_NOTES.md and commit it "
-            "(step 9 of the lab instructions), then merge the branch into main and push (step 10).",
-        )
-        lines = note_lines(notes)
-        for bullet in (YOUR_BULLET, TEAMMATE_BULLET):
-            self.assertEqual(
-                1,
-                lines.count(bullet),
-                "RELEASE_NOTES.md on main must contain this v1.1 line exactly once, word for "
-                f"word: {bullet!r}. A resolution keeps the work of both sides (step 9). " + repeat,
-            )
-        self.assertEqual(
-            1,
-            lines.count("## v1.1"),
-            "RELEASE_NOTES.md on main must have exactly one '## v1.1' heading. " + repeat,
-        )
-        self.assertIn(
-            "- First release of the deploy status helper.",
-            lines,
-            "The v1.0 entry is missing from RELEASE_NOTES.md on main. Keep the lines outside "
-            "the conflict as they were. " + repeat,
-        )
-
-    def test_feature_is_merged_into_main(self):
-        self.require_feature_branch()
-        merged = git("merge-base", "--is-ancestor", FEATURE, MAIN, check=False)
-        self.assertEqual(
-            0,
-            merged.returncode,
-            f"main does not contain {FEATURE} yet. Run `git switch {MAIN}`, then "
-            f"`git merge {FEATURE}` (step 10 of the lab instructions).",
-        )
-
-    def test_main_is_pushed_to_origin(self):
-        local = out("rev-parse", MAIN)
-        remote = out("rev-parse", f"refs/heads/{MAIN}", repo=ORIGIN)
-        self.assertEqual(
-            local,
-            remote,
-            "origin's main does not match your main. Finish the earlier steps, then run "
-            "`git push origin main`.",
-        )
-
-    def test_stash_is_empty_after_restore(self):
-        self.require_feature_branch()
-        if not out("stash", "list"):
-            return
-        committed = "Finish v1.1 release notes" in subjects(FEATURE)
-        self.fail(
-            "The stash still holds an entry. "
-            + (
-                "Your notes are already committed, so the entry is a leftover copy (for "
-                "example after `git stash apply`). From the lab folder, "
-                "`cd src/release-day`, remove it with `git stash drop`, then `cd ../..` "
-                "and rerun the checks."
-                if committed
-                else "Pop your release-notes work with `git stash pop` on the feature branch "
-                "and finish step 6 of the lab instructions (Finish the release notes on a branch)."
-            )
-        )
-
-    def test_worktree_is_clean_and_on_main(self):
-        self.assertEqual(
-            MAIN,
-            out("symbolic-ref", "--short", "HEAD"),
-            f"Finish on branch {MAIN}: run `git switch {MAIN}` after merging.",
-        )
-        self.assertEqual(
-            "",
-            out("status", "--porcelain"),
-            "Uncommitted or untracked files remain: `git status` shows what is left. "
-            "Commit what belongs in the lab commits and remove anything you added by hand.",
-        )
+def test_step7_scratch_reset(tmp_path):
+    lab = scenario_after_step(tmp_path, 7)
+    assert "commit: WIP scratch" in lab.reflog_subjects(FEATURE), (
+        "Step 7: the scratch mistake was never made. src/step7_scratch_reset.sh first commits "
+        "scratch.tmp as 'WIP scratch', then removes that commit with reset."
+    )
+    assert lab.out("log", "-1", "--format=%s", FEATURE) == NOTES_SUBJECT, (
+        f"Step 7: the newest commit on {FEATURE} should be '{NOTES_SUBJECT}' again. The scratch "
+        "commit was never shared, so remove it with `git reset --hard HEAD~1`."
+    )
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_step8_pull_teammate(tmp_path):
+    lab = scenario_after_step(tmp_path, 8)
+    assert lab.current_branch() == MAIN, (
+        f"Step 8: you should end this step on {MAIN}. Start src/step8_pull_teammate.sh with "
+        f"`git switch {MAIN}`."
+    )
+    assert TEAMMATE_SUBJECT in lab.subjects(MAIN), (
+        "Step 8: the teammate's commit is not on your main. Run `git fetch origin`, then "
+        f"`git pull --no-edit origin {MAIN}`."
+    )
+
+
+def test_step9_resolve_conflict(tmp_path):
+    lab = scenario_after_step(tmp_path, 9)
+    notes = lab.file_at(FEATURE, "RELEASE_NOTES.md")
+    left = [line for line in notes.splitlines() if line.startswith(MARKERS)]
+    assert left == [], (
+        "Step 9: RELEASE_NOTES.md on the feature branch still contains conflict markers. Write "
+        "the resolved file (both v1.1 bullets, no <<<<<<<, ======= or >>>>>>> lines), add it, "
+        "then `git commit --no-edit`."
+    )
+    mine = lab.commit_with_subject(FEATURE, NOTES_SUBJECT)
+    theirs = lab.commit_with_subject(FEATURE, TEAMMATE_SUBJECT)
+    assert mine and theirs and lab.joining_merge(FEATURE, mine, theirs), (
+        f"Step 9: no merge on {FEATURE} joins your release-notes commit with the teammate's. "
+        f"Run `git switch {FEATURE}` and `git merge {MAIN} || true`, resolve, add and commit."
+    )
+    assert YOUR_BULLET in notes and TEAMMATE_BULLET in notes, (
+        "Step 9: the resolved RELEASE_NOTES.md must keep both v1.1 bullets: yours and the "
+        "teammate's. A resolution keeps the work of both sides."
+    )
+
+
+def test_step10_merge_and_push(tmp_path):
+    lab = scenario_after_step(tmp_path, 10)
+    assert lab.ok("merge-base", "--is-ancestor", FEATURE, MAIN), (
+        f"Step 10: main does not contain {FEATURE}. Run `git switch {MAIN}`, then "
+        f"`git merge {FEATURE}`."
+    )
+    assert lab.out("rev-parse", MAIN) == lab.out("rev-parse", f"refs/heads/{MAIN}", repo=lab.origin), (
+        f"Step 10: origin's main does not match your main. Finish with `git push origin {MAIN}`."
+    )
