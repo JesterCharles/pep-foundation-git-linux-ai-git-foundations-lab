@@ -7,7 +7,7 @@ stands in for the team's remote (origin.git) and your clone of it
 bash and inspects the result with Git.
 
 To check one step on its own, the earlier steps are first done for you,
-correctly, with the commands the lab instructions show. Each check therefore
+correctly, with the commands the lab README shows. Each check therefore
 judges only the script for its own step.
 """
 
@@ -81,7 +81,7 @@ RESOLVED_NOTES = f"""# Release notes
 {V10_BULLET}
 """
 
-# The correct commands for each step, exactly as the lab instructions show them.
+# The correct commands for each step, exactly as the lab README shows them.
 # A check for step N runs these for the steps before N, then your script for N.
 REFERENCE = {
     4: "git stash\n",
@@ -329,7 +329,7 @@ def _run_bash(scenario, step, script_text, label):
 
 
 def apply_reference(scenario, before):
-    """Do every step before `before` correctly, as the lab instructions show."""
+    """Do every step before `before` correctly, as the lab README shows."""
     for step in range(FIRST_STEP, before):
         result = _run_bash(scenario, step, "set -euo pipefail\n" + REFERENCE[step], f"reference step {step}")
         if result.returncode != 0:

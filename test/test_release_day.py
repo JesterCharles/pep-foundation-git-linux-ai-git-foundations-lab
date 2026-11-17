@@ -57,7 +57,7 @@ def test_step6_release_notes(tmp_path):
     notes = lab.file_at(FEATURE, "RELEASE_NOTES.md")
     assert "TODO" not in notes, (
         "Step 6: RELEASE_NOTES.md on the feature branch still contains the TODO line. After "
-        "`git stash pop`, write the finished file (the lab instructions show it), then add and commit it."
+        "`git stash pop`, write the finished file (the lab README shows it), then add and commit it."
     )
     assert YOUR_BULLET in notes, (
         f"Step 6: RELEASE_NOTES.md on the feature branch is missing your v1.1 bullet, word for word: {YOUR_BULLET!r}"
