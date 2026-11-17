@@ -1,18 +1,25 @@
-# Created by setup and by the test run; rebuild with: python tests/setup_lab.py
-/reports/
+# Python
 __pycache__/
-*.pyc
-/starter/origin.git/
+*.py[cod]
+*.egg-info/
+.venv/
+.env
+reports/
+.pytest_cache/
+
+# Node
+node_modules/
+
+# Created by setup: the local "team remote" for the lab repository.
+/src/origin.git/
 
 # Local secrets and environment files: never commit them
-.env
 .env.*
 *.env
 !.env.example
 !*.env.example
 
-# Editor and OS files
-.vscode/
+# Editor and OS files (.vscode/ stays tracked: it holds the Run Tests task)
 .idea/
 .DS_Store
 Thumbs.db

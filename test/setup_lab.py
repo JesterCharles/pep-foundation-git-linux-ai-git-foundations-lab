@@ -1,13 +1,18 @@
-"""Create (or reset) the lab repository in starter/release-day/ and its local remote.
+"""Create (or reset) the lab repository in src/release-day/ and its local remote.
 
-Run from the lab folder:  python tests/setup_lab.py
-Re-running it is the reset path: it replaces all work inside starter/.
+Run from the lab folder:  python test/setup_lab.py
+Re-running it is the reset path: it replaces all work inside src/.
 """
 
 import shutil
 import sys
+from pathlib import Path
 
-from lab_support import (
+# Run as a script (python test/setup_lab.py): put the project folder on the import
+# path so the shared helpers load as test.lab_support, the name pytest uses.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from test.lab_support import (
     EMPTY_EXCLUDES,
     FIXED,
     FIXTURES,
@@ -42,7 +47,7 @@ def main():
         sys.exit("Python 3.11 or newer is required. Check `python --version`.")
 
     if (REPO / ".git").exists():
-        print("WARNING: resetting the lab. All work inside starter/ is replaced.")
+        print("WARNING: resetting the lab. All work inside src/ is replaced.")
     reset_starter()
 
     # Initial project on main.
@@ -82,8 +87,8 @@ def main():
     # Your own half-written release notes wait, uncommitted, in the working tree.
     write_fixture(FIXTURES / "wip" / "RELEASE_NOTES.md", REPO / "RELEASE_NOTES.md")
 
-    print("Lab ready in starter/release-day/ on branch main, with a local remote in starter/origin.git.")
-    print("Next: cd starter/release-day, then run git status.")
+    print("Lab ready in src/release-day/ on branch main, with a local remote in src/origin.git.")
+    print("Next: cd src/release-day, then run git status.")
 
 
 if __name__ == "__main__":

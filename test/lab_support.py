@@ -11,7 +11,7 @@ from pathlib import Path
 
 LAB_ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = LAB_ROOT / "fixtures"
-STARTER = LAB_ROOT / "starter"
+STARTER = LAB_ROOT / "src"
 REPO = STARTER / "release-day"
 ORIGIN = STARTER / "origin.git"
 
@@ -24,7 +24,7 @@ FEATURE = "feature/release-notes"
 CREATED_PATHS = [
     REPO,
     ORIGIN,
-    LAB_ROOT / "tests" / "__pycache__",
+    LAB_ROOT / "test" / "__pycache__",
 ]
 EMPTY_EXCLUDES = ".git/info/no-global-excludes"
 
@@ -62,9 +62,9 @@ def inside(path, parent):
 
 
 def remove(path):
-    """Remove a lab-created path after confirming it is inside the starter or tests folder."""
+    """Remove a lab-created path after confirming it is inside the src or test folder."""
     path = Path(path)
-    if not (inside(path, STARTER) or inside(path, LAB_ROOT / "tests")):
+    if not (inside(path, STARTER) or inside(path, LAB_ROOT / "test")):
         raise RuntimeError(f"refusing to remove {path}: outside the lab")
     if path.is_dir() and not path.is_symlink():
         if sys.version_info >= (3, 12):

@@ -1,15 +1,15 @@
 """Checks for the "Release day" lab. Run from the lab folder:
 
-    python -m unittest discover -s tests -v
+    python -m pytest -q
 
 Each failure message names the next action.
 """
 
 import unittest
 
-from lab_support import FEATURE, MAIN, ORIGIN, REPO, git, out
+from test.lab_support import FEATURE, MAIN, ORIGIN, REPO, git, out
 
-SETUP_HINT = "Run `python tests/setup_lab.py` from the lab folder first."
+SETUP_HINT = "Run `python test/setup_lab.py` from the lab folder first."
 DEBUG_LINE = "DEBUG: remove before release"
 YOUR_BULLET = "- The deployment name now comes from DEPLOY_ENV, with a development fallback."
 TEAMMATE_BULLET = "- The README now documents the support rotation."
@@ -98,13 +98,13 @@ class ReleaseDayTest(unittest.TestCase):
             "TODO",
             notes,
             "RELEASE_NOTES.md still contains the TODO line. Pop your stash on the feature branch, "
-            "replace the TODO line with your v1.1 bullet from the README, then commit.",
+            "replace the TODO line with your v1.1 bullet from the lab instructions, then commit.",
         )
         self.assertIn(
             "DEPLOY_ENV",
             notes,
             "RELEASE_NOTES.md does not mention the DEPLOY_ENV change. Add your v1.1 bullet "
-            "from step 6 of the README (Finish the release notes on a branch).",
+            "from step 6 of the lab instructions (Finish the release notes on a branch).",
         )
 
     def test_feature_branch_commit_is_focused(self):
@@ -141,7 +141,7 @@ class ReleaseDayTest(unittest.TestCase):
             elif git("merge-base", "--is-ancestor", holding.split()[0], MAIN, check=False).returncode == 0:
                 hint = (
                     "It has already reached main (and may be pushed), so never reset main now. "
-                    "Rerun `python tests/setup_lab.py` and repeat the steps, removing the scratch "
+                    "Rerun `python test/setup_lab.py` and repeat the steps, removing the scratch "
                     "commit in step 7, before you go back to main in step 8."
                 )
             else:
@@ -159,7 +159,7 @@ class ReleaseDayTest(unittest.TestCase):
     def test_release_notes_conflict_is_resolved(self):
         self.require_feature_branch()
         repeat = (
-            "From the lab folder, `cd starter/release-day` (cmd: `cd starter\\release-day`), "
+            "From the lab folder, `cd src/release-day` (cmd: `cd src\\release-day`), "
             "then fix it in a new commit on feature/release-notes "
             "(`git switch feature/release-notes`, edit, `git add RELEASE_NOTES.md`, "
             '`git commit -m "Resolve the release-notes conflict"`), then repeat step 10 '
@@ -180,7 +180,7 @@ class ReleaseDayTest(unittest.TestCase):
         self.assertTrue(
             mine and theirs,
             "main does not yet hold both your 'Finish v1.1 release notes' commit and the "
-            "teammate's 'Document the support rotation' commit. Finish steps 6-10 of the README "
+            "teammate's 'Document the support rotation' commit. Finish steps 6-10 of the lab instructions "
             "first; the other failing checks name the missing step.",
         )
         joined = None
@@ -195,9 +195,9 @@ class ReleaseDayTest(unittest.TestCase):
         self.assertIsNotNone(
             joined,
             "No merge on main joins your release-notes commit with the teammate's. From the "
-            f"lab folder, `cd starter/release-day`, then run `git switch {FEATURE}` and "
+            f"lab folder, `cd src/release-day`, then run `git switch {FEATURE}` and "
             f"`git merge {MAIN}`, resolve the conflict in RELEASE_NOTES.md and commit it "
-            "(step 9 of the README), then merge the branch into main and push (step 10).",
+            "(step 9 of the lab instructions), then merge the branch into main and push (step 10).",
         )
         lines = note_lines(notes)
         for bullet in (YOUR_BULLET, TEAMMATE_BULLET):
@@ -226,7 +226,7 @@ class ReleaseDayTest(unittest.TestCase):
             0,
             merged.returncode,
             f"main does not contain {FEATURE} yet. Run `git switch {MAIN}`, then "
-            f"`git merge {FEATURE}` (step 10 of the README).",
+            f"`git merge {FEATURE}` (step 10 of the lab instructions).",
         )
 
     def test_main_is_pushed_to_origin(self):
@@ -249,11 +249,11 @@ class ReleaseDayTest(unittest.TestCase):
             + (
                 "Your notes are already committed, so the entry is a leftover copy (for "
                 "example after `git stash apply`). From the lab folder, "
-                "`cd starter/release-day`, remove it with `git stash drop`, then `cd ../..` "
+                "`cd src/release-day`, remove it with `git stash drop`, then `cd ../..` "
                 "and rerun the checks."
                 if committed
                 else "Pop your release-notes work with `git stash pop` on the feature branch "
-                "and finish step 6 of the README (Finish the release notes on a branch)."
+                "and finish step 6 of the lab instructions (Finish the release notes on a branch)."
             )
         )
 
